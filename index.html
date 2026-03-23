@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>想念小狗</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #f9e7b3 0%, #f5cfa7 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 50px;
+            padding: 40px 30px;
+            text-align: center;
+            max-width: 450px;
+            width: 100%;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+            position: relative;
+            z-index: 10;
+        }
+        
+        .click-area {
+            cursor: pointer;
+        }
+        
+        .dog-image {
+            font-size: 200px;
+            margin: 20px 0;
+            display: block;
+            transition: transform 0.1s ease;
+            cursor: pointer;
+        }
+        
+        .dog-image:active {
+            transform: scale(0.95);
+        }
+        
+        .message-box {
+            background: #fff5e8;
+            border-radius: 60px;
+            padding: 25px 20px;
+            margin: 20px 0;
+            border: 2px solid #ffc489;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .message {
+            font-size: 36px;
+            font-weight: bold;
+            color: #c46b3f;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        
+        .hint {
+            background: #ffd9a5;
+            padding: 12px 24px;
+            border-radius: 50px;
+            display: inline-block;
+            margin-top: 10px;
+            font-size: 18px;
+            color: #8b4c2c;
+            font-weight: 500;
+        }
+        
+        .paw {
+            font-size: 24px;
+            margin-top: 20px;
+            color: #d9945a;
+            letter-spacing: 8px;
+        }
+        
+        /* 漂浮特效动画 */
+        @keyframes floatUp {
+            0% {
+                transform: translateY(0) scale(0.5);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-150px) scale(1.2);
+                opacity: 0;
+            }
+        }
+        
+        @keyframes floatRotate {
+            0% {
+                transform: translateY(0) rotate(0deg) scale(0.3);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-180px) rotate(360deg) scale(1);
+                opacity: 0;
+            }
+        }
+        
+        .floating-effect {
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            font-size: 28px;
+            animation: floatUp 1s ease-out forwards;
+        }
+        
+        .star-effect {
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            font-size: 24px;
+            animation: floatRotate 0.8s ease-out forwards;
+        }
+        
+        .heart-effect {
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            font-size: 28px;
+            animation: floatUp 1.2s ease-out forwards;
+        }
+        
+        /* 点击波纹效果 */
+        .ripple {
+            position: fixed;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,200,100,0.6) 0%, rgba(255,150,50,0) 70%);
+            pointer-events: none;
+            transform: scale(0);
+            animation: rippleExpand 0.6s ease-out forwards;
+            z-index: 9998;
+        }
+        
+        @keyframes rippleExpand {
+            0% {
+                transform: scale(0);
+                opacity: 0.8;
+            }
+            100% {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+        
+        /* 小狗摇尾巴动画 */
+        @keyframes wag {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(10deg); }
+            75% { transform: rotate(-5deg); }
+        }
+        
+        .wag-animation {
+            animation: wag 0.3s ease-in-out 3;
+            display: inline-block;
+        }
+        
+        /* 响应式 */
+        @media (max-width: 500px) {
+            .dog-image {
+                font-size: 150px;
+            }
+            .message {
+                font-size: 28px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="mainContainer">
+        <div class="click-area">
+            <div class="dog-image" id="dogImage">
+                🐕
+            </div>
+        </div>
+        
+        <div class="message-box">
+            <div class="message" id="messageText">
+                摸摸我吧～
+            </div>
+        </div>
+        
+        <div class="hint">
+            ✨ 点击小狗 ✨ 星星✨爱心💖
+        </div>
+        <div class="paw">
+            🐾 🐾 🐾 🐾
+        </div>
+    </div>
+
+    <script>
+        // 获取元素
+        const container = document.getElementById('mainContainer');
+        const dogImage = document.getElementById('dogImage');
+        const messageText = document.getElementById('messageText');
+        
+        // 存储恢复定时器
+        let recoverTimer = null;
+        
+        // 特效元素数组（用于清理）
+        let activeEffects = [];
+        
+        // 创建星星特效
+        function createStars(x, y, count = 8) {
+            const starSymbols = ['⭐', '🌟', '✨', '💫', '⭐', '🌟', '✨'];
+            
+            for (let i = 0; i < count; i++) {
+                setTimeout(() => {
+                    const star = document.createElement('div');
+                    const randomStar = starSymbols[Math.floor(Math.random() * starSymbols.length)];
+                    star.textContent = randomStar;
+                    star.className = 'star-effect';
+                    
+                    // 随机偏移位置
+                    const offsetX = (Math.random() - 0.5) * 80;
+                    const offsetY = (Math.random() - 0.5) * 60;
+                    star.style.left = (x + offsetX) + 'px';
+                    star.style.top = (y + offsetY) + 'px';
+                    
+                    document.body.appendChild(star);
+                    activeEffects.push(star);
+                    
+                    // 动画结束后移除
+                    setTimeout(() => {
+                        if (star && star.remove) star.remove();
+                        activeEffects = activeEffects.filter(e => e !== star);
+                    }, 800);
+                }, i * 50);
+            }
+        }
+        
+        // 创建爱心特效
+        function createHearts(x, y, count = 6) {
+            const heartSymbols = ['❤️', '💖', '💗', '💓', '💕', '💝', '🧡', '💛'];
+            
+            for (let i = 0; i < count; i++) {
+                setTimeout(() => {
+                    const heart = document.createElement('div');
+                    const randomHeart = heartSymbols[Math.floor(Math.random() * heartSymbols.length)];
+                    heart.textContent = randomHeart;
+                    heart.className = 'heart-effect';
+                    
+                    // 随机偏移
+                    const offsetX = (Math.random() - 0.5) * 100;
+                    const offsetY = (Math.random() - 0.5) * 50 - 20;
+                    heart.style.left = (x + offsetX) + 'px';
+                    heart.style.top = (y + offsetY) + 'px';
+                    
+                    // 随机动画时长
+                    const duration = 0.8 + Math.random() * 0.6;
+                    heart.style.animation = `floatUp ${duration}s ease-out forwards`;
+                    
+                    document.body.appendChild(heart);
+                    activeEffects.push(heart);
+                    
+                    setTimeout(() => {
+                        if (heart && heart.remove) heart.remove();
+                        activeEffects = activeEffects.filter(e => e !== heart);
+                    }, 1000);
+                }, i * 60);
+            }
+        }
+        
+        // 创建漂浮星星/爱心混合特效
+        function createMixedEffects(x, y) {
+            // 星星
+            for (let i = 0; i < 12; i++) {
+                setTimeout(() => {
+                    const effect = document.createElement('div');
+                    const isStar = Math.random() > 0.4;
+                    if (isStar) {
+                        const stars = ['⭐', '🌟', '✨', '💫'];
+                        effect.textContent = stars[Math.floor(Math.random() * stars.length)];
+                        effect.className = 'star-effect';
+                    } else {
+                        const hearts = ['❤️', '💖', '💗', '💕'];
+                        effect.textContent = hearts[Math.floor(Math.random() * hearts.length)];
+                        effect.className = 'heart-effect';
+                    }
+                    
+                    const offsetX = (Math.random() - 0.5) * 120;
+                    const offsetY = (Math.random() - 0.5) * 80 - 30;
+                    effect.style.left = (x + offsetX) + 'px';
+                    effect.style.top = (y + offsetY) + 'px';
+                    
+                    const duration = 0.7 + Math.random() * 0.8;
+                    effect.style.animation = `floatUp ${duration}s ease-out forwards`;
+                    
+                    document.body.appendChild(effect);
+                    activeEffects.push(effect);
+                    
+                    setTimeout(() => {
+                        if (effect && effect.remove) effect.remove();
+                        activeEffects = activeEffects.filter(e => e !== effect);
+                    }, 1000);
+                }, i * 40);
+            }
+        }
+        
+        // 创建点击波纹
+        function createRipple(x, y) {
+            const ripple = document.createElement('div');
+            ripple.className = 'ripple';
+            ripple.style.left = (x - 50) + 'px';
+            ripple.style.top = (y - 50) + 'px';
+            ripple.style.width = '100px';
+            ripple.style.height = '100px';
+            document.body.appendChild(ripple);
+            
+            setTimeout(() => {
+                if (ripple && ripple.remove) ripple.remove();
+            }, 600);
+        }
+        
+        // 摇尾巴动画
+        function wagTail() {
+            dogImage.classList.add('wag-animation');
+            setTimeout(() => {
+                dogImage.classList.remove('wag-animation');
+            }, 300);
+        }
+        
+        // 改变小狗为开心表情
+        function setHappyDog() {
+            const happyFaces = ['🐶💖', '🐕‍🦺✨', '🐕💕', '🐶⭐', '🐕‍🦺❤️'];
+            const randomFace = happyFaces[Math.floor(Math.random() * happyFaces.length)];
+            dogImage.innerHTML = randomFace;
+        }
+        
+        // 恢复原来的小狗图片（8秒后）
+        function scheduleRecover() {
+            // 清除之前的定时器
+            if (recoverTimer) {
+                clearTimeout(recoverTimer);
+            }
+            // 设置新的定时器，8秒后恢复
+            recoverTimer = setTimeout(() => {
+                dogImage.innerHTML = '🐕';
+                // 如果消息文字还是"I miss you"，也恢复
+                if (messageText.innerHTML === '💖 I miss you 💖' || messageText.innerHTML === 'I miss you ❤️') {
+                    messageText.innerHTML = '摸摸我吧～';
+                }
+                recoverTimer = null;
+            }, 8000);
+        }
+        
+        // 主要点击函数
+        function sayMissYou(event) {
+            // 获取点击坐标
+            let clientX, clientY;
+            if (event && (event.clientX || event.clientY)) {
+                clientX = event.clientX;
+                clientY = event.clientY;
+            } else {
+                // 如果没有坐标，使用小狗图片中心位置
+                const rect = dogImage.getBoundingClientRect();
+                clientX = rect.left + rect.width / 2;
+                clientY = rect.top + rect.height / 2;
+            }
+            
+            // 1. 改变文字
+            messageText.innerHTML = '💖 I miss you 💖';
+            messageText.style.transform = 'scale(1.05)';
+            setTimeout(() => {
+                messageText.style.transform = 'scale(1)';
+            }, 200);
+            
+            // 2. 摇尾巴动画
+            wagTail();
+            
+            // 3. 改变小狗为开心表情
+            setHappyDog();
+            
+            // 4. 创建特效：星星 + 爱心
+            createMixedEffects(clientX, clientY);
+            createStars(clientX, clientY, 10);
+            createHearts(clientX, clientY, 8);
+            
+            // 5. 创建点击波纹
+            createRipple(clientX, clientY);
+            
+            // 6. 8秒后恢复原来的小狗图片
+            scheduleRecover();
+        }
+        
+        // 绑定点击事件
+        dogImage.onclick = function(e) {
+            e.stopPropagation();
+            sayMissYou(e);
+            console.log('小狗被点击了！✨💖');
+            return false;
+        };
+        
+        // 触摸屏优化
+        dogImage.ontouchstart = function(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const fakeEvent = { clientX: touch.clientX, clientY: touch.clientY };
+            sayMissYou(fakeEvent);
+            console.log('触摸触发！✨💖');
+            return false;
+        };
+        
+        // 也允许点击整个容器（但避免重复）
+        container.onclick = function(e) {
+            if (e.target === dogImage || dogImage.contains(e.target)) {
+                return;
+            }
+            const rect = container.getBoundingClientRect();
+            const fakeEvent = { 
+                clientX: rect.left + rect.width / 2, 
+                clientY: rect.top + rect.height / 3 
+            };
+            sayMissYou(fakeEvent);
+        };
+        
+        // 页面加载完成提示
+        console.log('✨ 小狗网页已加载！点击小狗会有星星和爱心特效，8秒后恢复原样 ✨');
+    </script>
+</body>
+</html>
